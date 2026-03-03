@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import StructuredDataModal from './StructuredDataModal';
 
 interface Document {
   id: string;
@@ -18,13 +17,13 @@ interface Document {
 interface DocumentListProps {
   refreshTrigger: number;
   onViewGraph: (patientId: string) => void;
+  onViewData: (document: Document) => void;
 }
 
-export default function DocumentList({ refreshTrigger, onViewGraph }: DocumentListProps) {
+export default function DocumentList({ refreshTrigger, onViewGraph, onViewData }: DocumentListProps) {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(true);
 
   const fetchDocuments = async () => {
@@ -63,15 +62,15 @@ export default function DocumentList({ refreshTrigger, onViewGraph }: DocumentLi
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
       case 'completed':
-        return 'bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border border-green-200';
+        return 'bg-gradient-to-r from-green-600 to-emerald-600 text-white border border-green-400/50';
       case 'processing':
-        return 'bg-gradient-to-r from-yellow-100 to-amber-100 text-yellow-800 border border-yellow-200';
+        return 'bg-gradient-to-r from-yellow-600 to-amber-600 text-white border border-yellow-400/50';
       case 'failed':
-        return 'bg-gradient-to-r from-red-100 to-rose-100 text-red-800 border border-red-200';
+        return 'bg-gradient-to-r from-red-600 to-rose-600 text-white border border-red-400/50';
       case 'uploaded':
-        return 'bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-800 border border-blue-200';
+        return 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white border border-blue-400/50';
       default:
-        return 'bg-gray-100 text-gray-800 border border-gray-200';
+        return 'bg-gray-700 text-white border border-gray-500/50';
     }
   };
 
@@ -97,11 +96,11 @@ export default function DocumentList({ refreshTrigger, onViewGraph }: DocumentLi
 
   if (loading) {
     return (
-      <div className="bg-white rounded-2xl shadow-xl p-6 border border-gray-100">
+      <div className="bg-slate-900 rounded-2xl shadow-xl p-6 border border-purple-500/20">
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-600 font-medium">Loading documents...</p>
+            <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-purple-600 mx-auto mb-4"></div>
+            <p className="text-gray-300 font-medium">Loading documents...</p>
           </div>
         </div>
       </div>
@@ -109,7 +108,7 @@ export default function DocumentList({ refreshTrigger, onViewGraph }: DocumentLi
   }
 
   return (
-    <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">
+    <div className="bg-slate-900 rounded-2xl shadow-xl overflow-hidden border border-purple-500/20">
       {/* Header */}
       <div className="bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-4">
         <div className="flex items-center justify-between">
@@ -129,7 +128,7 @@ export default function DocumentList({ refreshTrigger, onViewGraph }: DocumentLi
             </label>
             <button
               onClick={fetchDocuments}
-              className="px-4 py-2 bg-white text-blue-600 text-sm font-bold rounded-lg hover:bg-blue-50 transition-all transform hover:scale-105 active:scale-95"
+              className="px-4 py-2 bg-white/20 hover:bg-white/30 text-white text-sm font-bold rounded-lg transition-all transform hover:scale-105 active:scale-95"
             >
               🔄 Refresh
             </button>
@@ -139,8 +138,8 @@ export default function DocumentList({ refreshTrigger, onViewGraph }: DocumentLi
 
       {/* Error State */}
       {error && (
-        <div className="p-6 m-6 bg-red-50 border-l-4 border-red-500 rounded-r-xl">
-          <p className="text-sm text-red-800 font-medium flex items-center gap-2">
+        <div className="p-6 m-6 bg-red-900/50 border-l-4 border-red-500 rounded-r-xl">
+          <p className="text-sm text-red-300 font-medium flex items-center gap-2">
             <span>❌</span>
             <span>{error}</span>
           </p>
@@ -151,8 +150,8 @@ export default function DocumentList({ refreshTrigger, onViewGraph }: DocumentLi
       {!error && documents.length === 0 && (
         <div className="p-16 text-center">
           <div className="text-6xl mb-4">📭</div>
-          <p className="text-xl text-gray-500 font-medium">No documents uploaded yet</p>
-          <p className="text-sm text-gray-400 mt-2">Upload a document above to get started</p>
+          <p className="text-xl text-gray-300 font-medium">No documents uploaded yet</p>
+          <p className="text-sm text-gray-500 mt-2">Upload a document above to get started</p>
         </div>
       )}
 
@@ -160,31 +159,31 @@ export default function DocumentList({ refreshTrigger, onViewGraph }: DocumentLi
       {!error && documents.length > 0 && (
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
+            <thead className="bg-slate-800/50">
               <tr>
-                <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-bold text-purple-300 uppercase tracking-wider">
                   Status
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-bold text-purple-300 uppercase tracking-wider">
                   File Name
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-bold text-purple-300 uppercase tracking-wider">
                   Patient ID
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-bold text-purple-300 uppercase tracking-wider">
                   Pages
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-bold text-purple-300 uppercase tracking-wider">
                   Uploaded
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-bold text-purple-300 uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-100">
+            <tbody className="bg-slate-900 divide-y divide-slate-700">
               {documents.map((doc) => (
-                <tr key={doc.id} className="hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 transition-all">
+                <tr key={doc.id} className="hover:bg-slate-800/50 transition-all">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span
                       className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold ${getStatusColor(
@@ -196,32 +195,32 @@ export default function DocumentList({ refreshTrigger, onViewGraph }: DocumentLi
                     </span>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="text-sm font-medium text-gray-900">{doc.file_name}</div>
+                    <div className="text-sm font-medium text-white">{doc.file_name}</div>
                     {doc.error_message && (
-                      <div className="text-xs text-red-600 mt-1 flex items-center gap-1">
+                      <div className="text-xs text-red-400 mt-1 flex items-center gap-1">
                         <span>⚠️</span>
                         <span>{doc.error_message}</span>
                       </div>
                     )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="text-sm text-gray-700 font-mono bg-gray-50 px-2 py-1 rounded">
+                    <span className="text-sm text-purple-300 font-mono bg-slate-800 px-2 py-1 rounded border border-purple-500/30">
                       {doc.patient_id}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="text-sm text-gray-600 font-medium">
+                    <span className="text-sm text-gray-300 font-medium">
                       {doc.page_count || '-'}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
                     {formatDate(doc.created_at)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm space-x-2">
                     {doc.status.toLowerCase() === 'completed' && doc.structured_data && (
                       <>
                         <button
-                          onClick={() => setSelectedDocument(doc)}
+                          onClick={() => onViewData(doc)}
                           className="px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-bold rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all transform hover:scale-105 active:scale-95"
                         >
                           📋 View Data
@@ -249,14 +248,6 @@ export default function DocumentList({ refreshTrigger, onViewGraph }: DocumentLi
             </tbody>
           </table>
         </div>
-      )}
-
-      {/* Structured Data Modal */}
-      {selectedDocument && (
-        <StructuredDataModal
-          document={selectedDocument}
-          onClose={() => setSelectedDocument(null)}
-        />
       )}
     </div>
   );

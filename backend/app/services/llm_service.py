@@ -22,7 +22,8 @@ class LLMService:
             aws_secret_access_key=settings.aws_secret_access_key,
             region_name=settings.aws_region
         )
-        self.model_id = "anthropic.claude-3-sonnet-20240229-v1:0"
+        self.model_id = settings.bedrock_model_id
+        logger.info(f"Initialized LLM service with model: {self.model_id} in region: {settings.aws_region}")
     
     def extract_structured_data(self, raw_text: str) -> Optional[Dict]:
         """
@@ -74,8 +75,11 @@ class LLMService:
             
         except ClientError as e:
             error_code = e.response.get('Error', {}).get('Code', 'Unknown')
-            error_msg = f"Bedrock ClientError ({error_code}): {str(e)}"
+            error_message = e.response.get('Error', {}).get('Message', str(e))
+            error_msg = f"Bedrock ClientError ({error_code}): {error_message}"
             logger.error(error_msg)
+            logger.error(f"Model ID: {self.model_id}, Region: {settings.aws_region}")
+            logger.error("Ensure the model is enabled in AWS Bedrock console for your region")
             return None
             
         except json.JSONDecodeError as e:

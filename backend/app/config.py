@@ -21,6 +21,8 @@ class Settings(BaseSettings):
     aws_secret_access_key: Optional[str] = None
     aws_region: str = "us-east-1"
     s3_bucket_name: Optional[str] = None
+    # Claude Sonnet 4.6 with cross-region inference (Feb 2026 - newest model)
+    bedrock_model_id: str = "us.anthropic.claude-sonnet-4-6"
     
     # Application Settings
     app_name: str = "OpenClaims API"

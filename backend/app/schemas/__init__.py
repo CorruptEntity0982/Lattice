@@ -44,8 +44,10 @@ class DocumentResponse(BaseModel):
     status: str
     extracted_text: Optional[str] = None
     extraction_confidence: Optional[float] = None
+    structured_data: Optional[dict] = None
     error_message: Optional[str] = None
     created_at: datetime
     processed_at: Optional[datetime] = None
     
+    model_config = ConfigDict(from_attributes=True)
     model_config = ConfigDict(from_attributes=True)

@@ -18,6 +18,39 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/documents", tags=["documents"])
 
 
+@router.get("/", response_model=list[DocumentResponse])
+async def list_documents(
+    limit: int = 100,
+    offset: int = 0,
+    status: str | None = None,
+    db: Session = Depends(get_db)
+):
+    """
+    List all documents with optional filtering
+    
+    Query params:
+    - limit: Maximum number of documents to return (default 100)
+    - offset: Number of documents to skip (default 0)
+    - status: Filter by document status (uploaded/processing/completed/failed)
+    """
+    query = db.query(Document)
+    
+    # Filter by status if provided
+    if status:
+        try:
+            status_enum = DocumentStatus(status.lower())
+            query = query.filter(Document.status == status_enum)
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid status. Must be one of: {[s.value for s in DocumentStatus]}"
+            )
+    
+    # Order by created_at descending (newest first)
+    documents = query.order_by(Document.created_at.desc()).offset(offset).limit(limit).all()
+    return documents
+
+
 @router.post("/upload", response_model=DocumentResponse, status_code=status.HTTP_201_CREATED)
 async def upload_document(
     patient_id: str = Form(..., description="Patient UUID"),

@@ -16,13 +16,18 @@ class Settings(BaseSettings):
     neo4j_user: str = "neo4j"
     neo4j_password: str = "password"
     
-    # AWS Configuration
+    # AWS Configuration (S3 for document storage)
     aws_access_key_id: Optional[str] = None
     aws_secret_access_key: Optional[str] = None
     aws_region: str = "us-east-1"
     s3_bucket_name: Optional[str] = None
-    # Claude Sonnet 4.6 with cross-region inference (Feb 2026 - newest model)
-    bedrock_model_id: str = "us.anthropic.claude-sonnet-4-6"
+    
+    # AWS Bedrock - COMMENTED OUT (using OpenAI instead)
+    # bedrock_model_id: str = "anthropic.claude-haiku-4-5-20251001-v1:0"
+    
+    # OpenAI Configuration
+    openai_api_key: Optional[str] = None
+    openai_model: str = "gpt-4o"
     
     # Application Settings
     app_name: str = "OpenClaims API"

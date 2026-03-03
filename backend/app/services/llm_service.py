@@ -1,9 +1,10 @@
 """
-LLM service for structured medical information extraction using AWS Bedrock
+LLM service for structured medical information extraction using OpenAI
 """
-import boto3
+# import boto3
 import json
-from botocore.exceptions import ClientError
+# from botocore.exceptions import ClientError
+from openai import OpenAI
 from app.config import settings
 import logging
 from typing import Dict, Optional
@@ -12,22 +13,17 @@ logger = logging.getLogger(__name__)
 
 
 class LLMService:
-    """Service for AWS Bedrock LLM operations"""
+    """Service for OpenAI LLM operations"""
     
     def __init__(self):
-        """Initialize Bedrock Runtime client"""
-        self.bedrock_client = boto3.client(
-            'bedrock-runtime',
-            aws_access_key_id=settings.aws_access_key_id,
-            aws_secret_access_key=settings.aws_secret_access_key,
-            region_name=settings.aws_region
-        )
-        self.model_id = settings.bedrock_model_id
-        logger.info(f"Initialized LLM service with model: {self.model_id} in region: {settings.aws_region}")
+        """Initialize OpenAI client"""
+        self.client = OpenAI(api_key=settings.openai_api_key)
+        self.model = settings.openai_model
+        logger.info(f"Initialized LLM service with OpenAI model: {self.model}")
     
     def extract_structured_data(self, raw_text: str) -> Optional[Dict]:
         """
-        Extract structured medical information from raw text using Claude
+        Extract structured medical information from raw text using OpenAI
         
         Args:
             raw_text: Raw text extracted from medical document
@@ -36,60 +32,44 @@ class LLMService:
             Dictionary containing structured medical data, or None if extraction fails
         """
         try:
-            logger.info("Starting LLM structured extraction")
+            logger.info("Starting LLM structured extraction with OpenAI")
             
             # Construct the extraction prompt
             prompt = self._build_extraction_prompt(raw_text)
             
-            # Call Bedrock with Claude
-            response = self.bedrock_client.invoke_model(
-                modelId=self.model_id,
-                contentType="application/json",
-                accept="application/json",
-                body=json.dumps({
-                    "anthropic_version": "bedrock-2023-05-31",
-                    "max_tokens": 4096,
-                    "temperature": 0,  # Deterministic output
-                    "messages": [
-                        {
-                            "role": "user",
-                            "content": prompt
-                        }
-                    ]
-                })
+            # Call OpenAI API
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "You are a medical information extraction system. Extract structured data from medical documents and return ONLY valid JSON, no commentary."
+                    },
+                    {
+                        "role": "user",
+                        "content": prompt
+                    }
+                ],
+                temperature=0,  # Deterministic output
+                response_format={"type": "json_object"}  # Force JSON response
             )
             
             # Parse response
-            response_body = json.loads(response['body'].read())
-            extracted_text = response_body['content'][0]['text']
+            extracted_text = response.choices[0].message.content
             
             logger.info(f"LLM extraction completed. Response length: {len(extracted_text)} chars")
             
             # Parse JSON from response
-            # Claude might wrap JSON in markdown code blocks, so clean it
             json_text = self._extract_json_from_response(extracted_text)
             structured_data = json.loads(json_text)
             
             logger.info("Successfully parsed structured data from LLM response")
             return structured_data
             
-        except ClientError as e:
-            error_code = e.response.get('Error', {}).get('Code', 'Unknown')
-            error_message = e.response.get('Error', {}).get('Message', str(e))
-            error_msg = f"Bedrock ClientError ({error_code}): {error_message}"
-            logger.error(error_msg)
-            logger.error(f"Model ID: {self.model_id}, Region: {settings.aws_region}")
-            logger.error("Ensure the model is enabled in AWS Bedrock console for your region")
-            return None
-            
-        except json.JSONDecodeError as e:
-            logger.error(f"Failed to parse LLM response as JSON: {str(e)}")
-            logger.error(f"Raw response: {extracted_text[:500] if 'extracted_text' in locals() else 'N/A'}")
-            return None
-            
         except Exception as e:
-            error_msg = f"LLM extraction failed: {str(e)}"
+            error_msg = f"OpenAI extraction failed: {str(e)}"
             logger.error(error_msg)
+            logger.error(f"Model: {self.model}")
             return None
     
     def _build_extraction_prompt(self, raw_text: str) -> str:

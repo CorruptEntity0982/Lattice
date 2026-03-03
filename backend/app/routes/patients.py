@@ -8,6 +8,7 @@ from app.database import get_db
 from app.models.patient import Patient
 from app.schemas import PatientCreate, PatientResponse
 from app.services.auth_service import hash_password
+from app.services.graph_service import graph_service
 import logging
 import uuid
 
@@ -96,3 +97,107 @@ async def get_patient(
             detail="Patient not found"
         )
     return patient
+
+
+@router.get("/{patient_id}/graph")
+async def get_patient_graph(
+    patient_id: str,
+    db: Session = Depends(get_db)
+):
+    """
+    Get patient's medical graph data from Neo4j
+    
+    Returns nodes and relationships for visualization:
+    - Patient node
+    - Encounter nodes
+    - Claim nodes
+    - Condition nodes
+    - Hospital nodes
+    - All relationships between them
+    """
+    # Verify patient exists in PostgreSQL
+    patient = db.query(Patient).filter(Patient.id == patient_id).first()
+    if not patient:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Patient not found"
+        )
+    
+    # Query Neo4j for graph data
+    if not graph_service.driver:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Graph database is unavailable"
+        )
+    
+    try:
+        with graph_service.driver.session() as session:
+            # Query to get all nodes and relationships for a patient
+            query = """
+            MATCH path = (p:Patient {patient_id: $patient_id})-[*1..2]-(n)
+            WITH p, collect(DISTINCT n) as nodes, collect(DISTINCT relationships(path)) as rels
+            RETURN 
+                p as patient_node,
+                nodes,
+                rels
+            """
+            
+            result = session.run(query, patient_id=patient_id)
+            record = result.single()
+            
+            if not record:
+                return {
+                    "nodes": [],
+                    "relationships": [],
+                    "message": "No graph data found for this patient"
+                }
+            
+            # Extract and format nodes
+            formatted_nodes = []
+            formatted_relationships = []
+            
+            # Add patient node
+            patient_node = dict(record["patient_node"])
+            formatted_nodes.append({
+                "id": patient_node.get("patient_id"),
+                "label": "Patient",
+                "properties": patient_node
+            })
+            
+            # Add related nodes
+            for node in record["nodes"]:
+                node_dict = dict(node)
+                node_labels = list(node.labels)
+                node_id = (
+                    node_dict.get("encounter_id") or
+                    node_dict.get("claim_id") or
+                    node_dict.get("condition_name") or
+                    node_dict.get("name")  # For Hospital
+                )
+                
+                formatted_nodes.append({
+                    "id": node_id,
+                    "label": node_labels[0] if node_labels else "Unknown",
+                    "properties": node_dict
+                })
+            
+            # Extract relationships from nested arrays
+            for rel_array in record["rels"]:
+                for rel in rel_array:
+                    formatted_relationships.append({
+                        "source": rel.start_node.get("patient_id") or rel.start_node.get("encounter_id") or rel.start_node.get("name"),
+                        "target": rel.end_node.get("encounter_id") or rel.end_node.get("claim_id") or rel.end_node.get("condition_name") or rel.end_node.get("name"),
+                        "type": rel.type
+                    })
+            
+            return {
+                "nodes": formatted_nodes,
+                "relationships": formatted_relationships
+            }
+            
+    except Exception as e:
+        logger.error(f"Error fetching graph data for patient {patient_id}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to fetch graph data: {str(e)}"
+        )

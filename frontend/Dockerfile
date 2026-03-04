@@ -1,19 +1,19 @@
-# Development Dockerfile for Next.js with hot reload
+# Frontend Dockerfile for Vite React App
 FROM node:20-alpine
 
 WORKDIR /app
 
 # Copy package files
-COPY package.json ./
+COPY package.json package-lock.json* ./
 
 # Install dependencies
 RUN npm install
 
-# Copy source code (will be overridden by volume mount for hot reload)
+# Copy source code
 COPY . .
 
-# Expose port
-EXPOSE 8000
+# Expose Vite dev server port
+EXPOSE 5173
 
-# Run in development mode with hot reload
-CMD ["npm", "run", "dev", "--", "-p", "8000"]
+# Run Vite dev server with host 0.0.0.0 to be accessible from outside container
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]

@@ -54,7 +54,7 @@ services:
       dockerfile: Dockerfile
     container_name: openclaims-backend
     ports:
-      - "3000:3000"  # Expose backend for direct access to Swagger
+      - "8000:8000"  # Expose backend for direct access to Swagger
     environment:
       # Database URLs
       POSTGRES_URL: postgresql://postgres:postgres@postgres:5432/openclaims
@@ -120,7 +120,7 @@ services:
     networks:
       - openclaims-network
 
-  # Frontend (Next.js with hot reload)
+  # Frontend (Vite React with hot reload)
   frontend:
     build:
       context: ./frontend
@@ -131,10 +131,8 @@ services:
       - ./frontend:/app
       # Preserve node_modules in container
       - /app/node_modules
-      - /app/.next
     environment:
       - NODE_ENV=development
-      - WATCHPACK_POLLING=true
     networks:
       - openclaims-network
     # Internal port only - not exposed externally
